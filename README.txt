@@ -1,1 +1,1 @@
-Hello, World!
+echo TEST > test.txt!
