@@ -1,60 +1,44 @@
-from fastapi import APIRouter, Path, HTTPException, status
+from fastapi import APIRouter, Path, HTTPException, status, Request, Depends
+from fastapi.templating import Jinja2Templates
 from model import Todo, TodoItem, TodoItems
 
 todo_router = APIRouter()
 todo_list = []
 
-# 1. CREATE: Добавление задачи (возвращает статус 201 Created)
-@todo_router.post("/todo", status_code=status.HTTP_201_CREATED)
-async def add_todo(todo: Todo) -> dict:
+templates = Jinja2Templates(directory="templates")
+
+@todo_router.post("/todo")
+async def add_todo(request: Request, todo: Todo = Depends(Todo.as_form)):
+    todo.id = len(todo_list) + 1
     todo_list.append(todo)
-    return {"message": "Задача успешно добавлена"}
+    return templates.TemplateResponse(
+        request=request,
+        name="todo.html",
+        context={"todos": todo_list}
+    )
 
-# 2. READ: Получение всех задач с использованием response_model
-@todo_router.get("/todo", response_model=TodoItems)
-async def retrieve_todos() -> dict:
-    return {"todos": todo_list}
+@todo_router.get("/todo")
+async def retrieve_todos(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="todo.html",
+        context={"todos": todo_list}
+    )
 
-# 3. READ: Получение одной задачи по ID с обработкой 404
+
 @todo_router.get("/todo/{todo_id}")
-async def get_single_todo(todo_id: int = Path(..., title="ID задачи")) -> dict:
+async def get_single_todo(
+    request: Request, 
+    todo_id: int = Path(..., title="ID задачи")
+):
     for todo in todo_list:
         if todo.id == todo_id:
-            return {"todo": todo}
+            return templates.TemplateResponse(
+                request=request,
+                name="todo.html",
+                context={"todo": todo}
+            )
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="Ошибка: задача с таким ID не найдена"
+        detail="Задача с таким ID не найдена"
     )
-
-# 4. UPDATE: Обновление текста задачи по ID
-@todo_router.put("/todo/{todo_id}")
-async def update_todo(
-    todo_data: TodoItem,
-    todo_id: int = Path(..., title="ID обновляемой задачи")
-) -> dict:
-    for todo in todo_list:
-        if todo.id == todo_id:
-            todo.item = todo_data.item
-            return {"message": "Задача успешно обновлена"}
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Ошибка обновления: задача с таким ID не существует"
-    )
-
-# 5. DELETE: Удаление одной задачи по ID
-@todo_router.delete("/todo/{todo_id}")
-async def delete_single_todo(todo_id: int = Path(..., title="ID задачи")) -> dict:
-    for index in range(len(todo_list)):
-        if todo_list[index].id == todo_id:
-            todo_list.pop(index)
-            return {"message": "Задача успешно удалена"}
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Ошибка удаления: задача с указанным ID не найдена"
-    )
-
-# 6. DELETE: Очистка всех задач
-@todo_router.delete("/todo")
-async def delete_all_todo() -> dict:
-    todo_list.clear()
-    return {"message": "Все задачи успешно очищены"}
