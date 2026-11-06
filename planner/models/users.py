@@ -1,34 +1,25 @@
+from typing import Optional, List, TYPE_CHECKING
+from sqlmodel import SQLModel, Field, Relationship
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
-from models.events import Event
 
+if TYPE_CHECKING:
+    from models.events import Event
 
-class User(BaseModel):
-    email: EmailStr
+# Таблица в БД
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(unique=True, index=True)
     password: str
-    username: Optional[str] = None
-    events: Optional[List[Event]] = []
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "email": "student@packt.com",
-                "password": "StrongPassword123!",
-                "username": "StudentUser",
-                "events": []
-            }
-        }
+    # Связь 1:N — один пользователь имеет много событий
+    events: List["Event"] = Relationship(back_populates="creator")
 
-
-# Модель для входа в систему (нужен только email и пароль)
+# Схема для авторизации
 class UserSignIn(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "email": "student@packt.com",
-                "password": "StrongPassword123!"
-            }
-        }
+# Схема ответа без пароля (для безопасности в Swagger)
+class UserPublic(BaseModel):
+    id: int
+    email: str
