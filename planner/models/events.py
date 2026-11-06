@@ -1,23 +1,36 @@
-from pydantic import BaseModel
-from typing import List
+from beanie import Document
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
 
 
-class Event(BaseModel):
-    id: int
+class Event(Document):
     title: str
     image: str
     description: str
     tags: List[str]
     location: str
+    # Поле создателя (почта пользователя)
+    creator: Optional[EmailStr] = None
+
+    class Settings:
+        name = "events"
 
     class Config:
         json_schema_extra = {
             "example": {
-                "id": 1,
                 "title": "FastAPI Book Launch",
                 "image": "https://linktomyimage.com/image.png",
-                "description": "Презентация книги по разработке API на FastAPI.",
-                "tags": ["python", "fastapi", "book"],
-                "location": "Google Meet"
+                "description": "Презентация книги по FastAPI",
+                "tags": ["python", "fastapi", "mongodb"],
+                "location": "Google Meet",
+                "creator": "student@packt.com"
             }
         }
+
+
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    image: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+    location: Optional[str] = None
